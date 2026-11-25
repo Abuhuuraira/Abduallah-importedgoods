@@ -1,26 +1,148 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+@custom-variant dark (&:is(.dark *));
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
+  --font-heading: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+
+  /* Brand extras */
+  --color-navy: var(--navy);
+  --color-navy-foreground: var(--navy-foreground);
+  --color-gold: var(--gold);
+  --color-gold-foreground: var(--gold-foreground);
+  --color-gold-soft: var(--gold-soft);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-booked: var(--booked);
+  --color-booked-soft: var(--booked-soft);
+  --color-whatsapp: var(--whatsapp);
+  --color-whatsapp-hover: var(--whatsapp-hover);
+  --color-surface: var(--surface);
+
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+
+  --shadow-soft: 0 1px 2px rgb(15 23 42 / 0.04), 0 4px 16px -4px rgb(15 23 42 / 0.08);
+  --shadow-lift: 0 2px 4px rgb(15 23 42 / 0.05), 0 12px 32px -8px rgb(15 23 42 / 0.16);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+/*
+ * Abdullah Imported Goods — light, premium palette
+ * Navy typography, white surfaces, a restrained gold accent.
+ */
+:root {
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.22 0.045 262);
+  --surface: oklch(0.982 0.004 250);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.22 0.045 262);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.22 0.045 262);
+
+  --primary: oklch(0.29 0.075 262);
+  --primary-foreground: oklch(0.99 0 0);
+  --secondary: oklch(0.965 0.008 255);
+  --secondary-foreground: oklch(0.27 0.06 262);
+  --muted: oklch(0.965 0.006 255);
+  --muted-foreground: oklch(0.5 0.025 258);
+  --accent: oklch(0.955 0.012 255);
+  --accent-foreground: oklch(0.27 0.06 262);
+  --destructive: oklch(0.55 0.21 27);
+  --border: oklch(0.915 0.01 255);
+  --input: oklch(0.88 0.012 255);
+  --ring: oklch(0.55 0.1 262);
+  --radius: 0.75rem;
+
+  --navy: oklch(0.25 0.07 262);
+  --navy-foreground: oklch(0.99 0 0);
+  --gold: oklch(0.8 0.13 80);
+  --gold-foreground: oklch(0.27 0.06 60);
+  --gold-soft: oklch(0.96 0.04 85);
+  --success: oklch(0.5 0.13 152);
+  --success-soft: oklch(0.96 0.04 152);
+  --booked: oklch(0.53 0.2 25);
+  --booked-soft: oklch(0.96 0.03 25);
+  --whatsapp: oklch(0.52 0.13 152);
+  --whatsapp-hover: oklch(0.46 0.12 152);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    @apply font-sans;
+    -webkit-tap-highlight-color: transparent;
+    scroll-behavior: smooth;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+    overflow-x: hidden;
+  }
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+  h1, h2, h3, h4 {
+    @apply tracking-tight;
+    text-wrap: balance;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@layer utilities {
+  .no-scrollbar {
+    scrollbar-width: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .container-page {
+    @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8;
+  }
+  .pb-safe {
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+}
+
+/* On phones, the product page's sticky booking bar replaces the floating WhatsApp button */
+@media (max-width: 767px) {
+  body:has([data-sticky-cta]) [data-floating-whatsapp] {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }
