@@ -13,7 +13,9 @@ const remotePatterns: NonNullable<NextConfig["images"]>["remotePatterns"] = [
   },
 ];
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim()
+  .replace(/\/+$/, "")
+  .replace(/\/(rest|auth|storage)\/v1$/i, "");
 
 /**
  * Only when Supabase itself runs on this machine (Supabase CLI: http://127.0.0.1:54321)

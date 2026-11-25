@@ -15,7 +15,11 @@ export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const isLoginPage = pathname === "/admin/login";
 
-  const url = (process.env.NEXT_PUBLIC_SUPABASE_URL ?? "").trim().replace(/\/+$/, "");
+  const url = (process.env.NEXT_PUBLIC_SUPABASE_URL ?? "")
+    .trim()
+    .replace(/\/+$/, "")
+    .replace(/\/(rest|auth|storage)\/v1$/i, "")
+    .replace(/\/+$/, "");
   const key = (
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ??
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ??

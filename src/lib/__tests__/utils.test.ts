@@ -1,7 +1,19 @@
 import { describe, expect, it } from "vitest";
+import { normalizeSupabaseUrl } from "@/lib/env";
 import { currencyLabel, formatDate, formatPrice } from "@/lib/format";
 import { catalogHref, catalogQueryString, parseCatalogParams } from "@/lib/search-params";
 import { nextAvailableSlug, slugify } from "@/lib/slug";
+
+describe("normalizeSupabaseUrl", () => {
+  it("accepts the base URL and fixes common copy-paste variants", () => {
+    const base = "https://abcd.supabase.co";
+    expect(normalizeSupabaseUrl(base)).toBe(base);
+    expect(normalizeSupabaseUrl(`${base}/`)).toBe(base);
+    expect(normalizeSupabaseUrl(`  ${base}/rest/v1/ `)).toBe(base);
+    expect(normalizeSupabaseUrl(`${base}/rest/v1`)).toBe(base);
+    expect(normalizeSupabaseUrl(undefined)).toBe("");
+  });
+});
 
 describe("slugify", () => {
   it("creates SEO-friendly slugs", () => {
