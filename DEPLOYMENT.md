@@ -59,7 +59,7 @@ Create free accounts on **Supabase**, **GitHub** and **Vercel**. Tip: on Supabas
 
 ## 3. Set up the database (run the SQL files)
 
-The folder `supabase/migrations/` contains **four** files. Each one is a set of instructions that creates part of the database. Run them **in this exact order**:
+The folder `supabase/migrations/` contains **five** files. Each one is a set of instructions that creates part of the database. Run them **in this exact order**:
 
 | Order | File | What it creates |
 | --- | --- | --- |
@@ -67,6 +67,7 @@ The folder `supabase/migrations/` contains **four** files. Each one is a set of 
 | 2 | `20261125000100_security_rls.sql` | Security rules (who can read or change what) |
 | 3 | `20261125000200_storage.sql` | The image storage bucket and its security rules |
 | 4 | `20261125000300_default_categories.sql` | Starter categories (Electronics, Kitchen Items, …) |
+| 5 | `20261126000000_visitor_analytics.sql` | Visitor statistics for **Admin → Visitors** (anonymous visit counting) |
 
 For **each file**:
 
@@ -79,7 +80,7 @@ For **each file**:
 >
 > Running a file a second time is safe. It won't duplicate anything.
 
-**Using the Supabase CLI instead (advanced, optional):** if you're comfortable with a terminal, run `npx supabase login`, then `npx supabase link --project-ref <your-project-ref>`, then `npx supabase db push` from the project folder. This runs all four files for you.
+**Using the Supabase CLI instead (advanced, optional):** if you're comfortable with a terminal, run `npx supabase login`, then `npx supabase link --project-ref <your-project-ref>`, then `npx supabase db push` from the project folder. This runs all five files for you.
 
 ---
 
@@ -327,6 +328,16 @@ Optional: add your site to **Google Search Console** (https://search.google.com/
 
 If two admins tap at the same time, only the first change is applied. The second admin sees a message that the product was already updated.
 
+### Seeing who visits your website
+
+Open **`/admin` → Visitors** (the dashboard also shows a small summary):
+
+- **Active right now**: how many people are using the website at this moment, and which pages or products they are looking at. It updates by itself every 15 seconds.
+- **Visitors today** and **page views today**.
+- For the **last 7, 30 or 90 days**: visitors, visits, page views, new visitors, average time on the site, a chart of visitors per day, your **most viewed products**, phones vs. computers, and where visitors came from (Google, Facebook, …). Links opened inside WhatsApp chats usually show as **Direct**.
+
+Visits are counted anonymously. No names, phone numbers or IP addresses are stored, and history older than 90 days is deleted automatically. Search engines, bots, and **your own visits** are not counted. Any phone or computer where you have opened the admin panel is skipped.
+
 **Hide vs. delete:** use **Unpublish** to hide a product temporarily (for example, out of stock for a while). Use **Delete** only when the product will never come back. Deleting also removes its photo.
 
 ---
@@ -335,7 +346,9 @@ If two admins tap at the same time, only the first change is applied. The second
 
 | Problem | Likely cause and fix |
 | --- | --- |
-| Website says **"We couldn't load products right now"** | The database isn't reachable or the SQL files weren't run. Check step 3 (all 4 files, in order) and that the Vercel environment variables match step 7. Redeploy after fixing variables. |
+| Website says **"We couldn't load products right now"** | The database isn't reachable or the SQL files weren't run. Check step 3 (all 5 files, in order) and that the Vercel environment variables match step 7. Redeploy after fixing variables. |
+| **Admin → Visitors** says *"One more step to turn on visitor statistics"* | File 5 (`20261126000000_visitor_analytics.sql`) hasn't been run yet. Run it in the SQL Editor (step 3), then reload the page. |
+| Visitors stays at **0** when you open the website yourself | That's on purpose: devices where you've opened the admin panel are not counted. Test with a phone that has never opened `/admin`. |
 | Website works but **no products** show | Products are saved as **Draft** or none are published. In Admin → Products, filter by "Drafts only" and publish them. |
 | Login says **"Incorrect email or password"** | Check for typing mistakes. Make sure the user exists in Supabase → Authentication → Users. Run the check query below. |
 | Login says **"email is not confirmed"** | The user was created without **Auto Confirm User**. Run the "confirm" query below, or delete the user and create it again with the box ticked. |

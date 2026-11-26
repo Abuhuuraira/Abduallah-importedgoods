@@ -30,6 +30,7 @@ A mobile-first wholesale product catalog with WhatsApp booking and a secure admi
 - Product list with search, filters, pagination, and one-tap **Mark Booked / Mark Available**, Publish / Unpublish, Edit and Delete (with confirmation)
 - Category management with product counts. A category that still has products can only be deleted after choosing where to move them.
 - Settings: business name, logo, WhatsApp number, currency, welcome text and contact details, used across the whole site
+- **Visitors**: live "active right now" count (auto-refreshing) with the pages being viewed, plus today / 7 / 30 / 90-day visitors, page views, new visitors, time on site, a daily chart, most viewed products, devices and traffic sources. Visits are counted anonymously (no cookies, IP addresses or personal data, 90-day history), and bots and the admin's own devices are excluded.
 
 ## Tech stack
 
@@ -42,7 +43,7 @@ src/
   app/
     (public)/              Customer website (home, /products, /products/[slug], /offline)
     admin/login/           Admin sign-in page
-    admin/(dashboard)/     Protected admin pages (dashboard, products, categories, settings)
+    admin/(dashboard)/     Protected admin pages (dashboard, visitors, products, categories, settings)
     api/products/          Read-only JSON endpoint used by "Load more"
     manifest.ts, robots.ts, sitemap.ts, not-found.tsx, global-error.tsx
   components/
@@ -60,7 +61,7 @@ src/
   proxy.ts                 Refreshes the session and guards /admin (formerly "middleware")
   types/                   App and database types
 supabase/
-  migrations/              SQL: schema, RLS security, storage bucket, starter categories
+  migrations/              SQL: schema, RLS security, storage bucket, starter categories, visitor statistics
   create-admin.sql         Authorize your first admin
 ```
 
@@ -80,7 +81,7 @@ npm run dev                    # http://localhost:3000  (admin: http://localhost
 | `npm run build` | Production build (also type-checks) |
 | `npm start` | Run the production build locally |
 | `npm run lint` | ESLint |
-| `npm test` | Unit tests (WhatsApp messages, validation, slugs, formatting, URL filters) |
+| `npm test` | Unit tests (WhatsApp messages, validation, slugs, formatting, URL filters, visitor statistics helpers) |
 
 ## How security works
 
@@ -90,6 +91,7 @@ npm run dev                    # http://localhost:3000  (admin: http://localhost
 4. **No secret keys.** The app only uses the publishable key. The service-role / secret key is not needed and must never be added to `NEXT_PUBLIC_*` variables.
 5. **Validation.** All input is validated with Zod on the server. Uploads are limited to JPG, PNG and WebP up to 5 MB, by both the app and the storage bucket. Image paths are checked against a strict pattern.
 6. **Concurrency.** Booking changes only apply if the product is still in the expected state (`… WHERE status = 'available'`). Product edits use a version number, so two admins can't silently overwrite each other.
+7. **Visitor statistics.** The website can only *record* visits, through two database functions that validate every value, ignore `/admin` and `/api` paths, and cap volume (200 page views per visit, 300 per minute overall). The tables have RLS with no policies, and only admins can read the totals (`get_visitor_live`, `get_visitor_stats` check `is_admin()`).
 
 ## How "instant" updates work
 

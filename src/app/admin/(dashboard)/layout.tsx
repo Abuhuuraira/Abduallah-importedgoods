@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 import { Plus, ShieldCheck } from "lucide-react";
+import { IgnoreThisDeviceForStats } from "@/components/analytics/visitor-tracker";
 import { AdminMobileMenu, AdminNav, AdminNavList } from "@/components/admin/admin-nav";
 import { AdminUser } from "@/components/admin/admin-user";
 import { Button } from "@/components/ui/button";
@@ -19,6 +20,7 @@ export const metadata: Metadata = {
 export default function AdminLayout({ children }: LayoutProps<"/admin">) {
   return (
     <div className="min-h-dvh bg-surface lg:flex">
+      <IgnoreThisDeviceForStats />
       {/* Desktop sidebar */}
       <aside className="sticky top-0 hidden h-dvh w-64 shrink-0 flex-col border-r border-border bg-background lg:flex">
         <div className="flex h-16 items-center gap-2.5 border-b border-border px-5">

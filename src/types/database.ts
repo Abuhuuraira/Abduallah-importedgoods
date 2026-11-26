@@ -234,6 +234,29 @@ export type Database = {
         Args: never;
         Returns: Json;
       };
+      track_page_view: {
+        Args: {
+          p_session_id: string;
+          p_visitor_id: string;
+          p_path: string;
+          p_referrer?: string | null;
+          p_device?: string | null;
+          p_new_visitor?: boolean;
+        };
+        Returns: undefined;
+      };
+      track_heartbeat: {
+        Args: { p_session_id: string; p_visitor_id: string };
+        Returns: undefined;
+      };
+      get_visitor_live: {
+        Args: never;
+        Returns: Json;
+      };
+      get_visitor_stats: {
+        Args: { p_days?: number };
+        Returns: Json;
+      };
     };
     Enums: {
       [_ in never]: never;

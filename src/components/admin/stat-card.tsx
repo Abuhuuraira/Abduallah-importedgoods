@@ -20,7 +20,7 @@ export function StatCard({
   hint,
 }: {
   label: string;
-  value: number;
+  value: number | string;
   icon: LucideIcon;
   tone?: keyof typeof tones;
   href?: string;
@@ -34,7 +34,7 @@ export function StatCard({
           <Icon className="size-5" aria-hidden="true" />
         </span>
       </div>
-      <p className="mt-1 text-3xl font-extrabold tracking-tight">{formatCount(value)}</p>
+      <p className="mt-1 text-3xl font-extrabold tracking-tight">{typeof value === "number" ? formatCount(value) : value}</p>
       {hint && <p className="mt-1 text-xs text-muted-foreground">{hint}</p>}
     </>
   );

@@ -11,24 +11,31 @@ import {
   PlusCircle,
   Settings,
   TriangleAlert,
+  Users,
 } from "lucide-react";
 import { AdminProductList } from "@/components/admin/admin-product-list";
 import { PageHeader } from "@/components/admin/page-header";
 import { StatCard } from "@/components/admin/stat-card";
+import { LiveVisitorsSummary } from "@/components/admin/visitors/live-visitors";
 import { EmptyState } from "@/components/shared/empty-state";
 import { Button } from "@/components/ui/button";
 import { requireAdmin } from "@/lib/auth";
-import { getAdminSettings, getDashboardStats, listAdminProducts } from "@/lib/data/admin";
+import { getAdminSettings, getDashboardStats, getVisitorLive, listAdminProducts } from "@/lib/data/admin";
 import { isValidWhatsAppNumber } from "@/lib/whatsapp";
 
 export const metadata: Metadata = { title: "Dashboard" };
 
 export default async function AdminDashboardPage() {
   const { user } = await requireAdmin();
-  const [stats, recent, settings] = await Promise.all([
+  const [stats, recent, settings, visitors] = await Promise.all([
     getDashboardStats(),
     listAdminProducts({ q: "", category: "", status: "all", publication: "all", page: 1 }, 5),
     getAdminSettings(),
+    // Visitor numbers are a bonus: never let them break the dashboard.
+    getVisitorLive().catch((error: unknown) => {
+      console.error("[admin] Visitor statistics unavailable:", error);
+      return null;
+    }),
   ]);
 
   return (
@@ -58,6 +65,22 @@ export default async function AdminDashboardPage() {
           </Button>
         </div>
       )}
+
+      {visitors?.installed ? (
+        <div className="mb-6">
+          <LiveVisitorsSummary initial={visitors.data} />
+        </div>
+      ) : visitors ? (
+        <div className="mb-6 flex flex-col gap-3 rounded-2xl border border-border/70 bg-card p-4 text-sm shadow-soft sm:flex-row sm:items-center sm:justify-between">
+          <p className="flex gap-2">
+            <Users className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+            Want to see how many people visit your website? Visitor statistics need a one-time setup.
+          </p>
+          <Button asChild size="sm" variant="outline" className="shrink-0">
+            <Link href="/admin/visitors">Set up visitors</Link>
+          </Button>
+        </div>
+      ) : null}
 
       <section aria-label="Statistics" className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
         <StatCard label="Total Products" value={stats.total_products} icon={Package} tone="navy" href="/admin/products" />

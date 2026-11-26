@@ -1,3 +1,5 @@
+import { Suspense } from "react";
+import { VisitorTracker } from "@/components/analytics/visitor-tracker";
 import { ServiceWorkerRegister } from "@/components/pwa/service-worker-register";
 import { FloatingWhatsApp } from "@/components/site/floating-whatsapp";
 import { SiteFooter } from "@/components/site/site-footer";
@@ -19,6 +21,9 @@ export default function PublicLayout({ children }: LayoutProps<"/">) {
       <SiteFooter />
       <FloatingWhatsApp />
       <ServiceWorkerRegister />
+      <Suspense fallback={null}>
+        <VisitorTracker />
+      </Suspense>
     </>
   );
 }

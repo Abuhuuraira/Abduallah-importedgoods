@@ -1,5 +1,12 @@
 import "server-only";
 
+import {
+  isAnalyticsNotInstalled,
+  parseVisitorLive,
+  parseVisitorStats,
+  type VisitorLive,
+  type VisitorStats,
+} from "@/lib/analytics";
 import { requireAdmin } from "@/lib/auth";
 import { ADMIN_PAGE_SIZE } from "@/lib/constants";
 import { searchRowToAdminProduct, settingsRowToSettings, toNumberOrNull } from "@/lib/data/mappers";
@@ -134,4 +141,23 @@ export async function getAdminSettings(): Promise<SiteSettings & { updatedAt: st
     .maybeSingle();
   if (error) throw new Error(`Could not load settings: ${error.message}`);
   return { ...settingsRowToSettings(data), updatedAt: data?.updated_at ?? null };
+}
+
+/** Result of a visitor-statistics read: "not installed" until the SQL file is run. */
+export type AnalyticsResult<T> = { installed: true; data: T } | { installed: false };
+
+export async function getVisitorLive(): Promise<AnalyticsResult<VisitorLive>> {
+  const { supabase } = await requireAdmin();
+  const { data, error } = await supabase.rpc("get_visitor_live");
+  if (isAnalyticsNotInstalled(error)) return { installed: false };
+  if (error) throw new Error(`Could not load live visitors: ${error.message}`);
+  return { installed: true, data: parseVisitorLive(data) };
+}
+
+export async function getVisitorStats(days: number): Promise<AnalyticsResult<VisitorStats>> {
+  const { supabase } = await requireAdmin();
+  const { data, error } = await supabase.rpc("get_visitor_stats", { p_days: days });
+  if (isAnalyticsNotInstalled(error)) return { installed: false };
+  if (error) throw new Error(`Could not load visitor statistics: ${error.message}`);
+  return { installed: true, data: parseVisitorStats(data) };
 }
