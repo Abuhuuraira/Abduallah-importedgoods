@@ -337,8 +337,9 @@ If two admins tap at the same time, only the first change is applied. The second
 | --- | --- |
 | Website says **"We couldn't load products right now"** | The database isn't reachable or the SQL files weren't run. Check step 3 (all 4 files, in order) and that the Vercel environment variables match step 7. Redeploy after fixing variables. |
 | Website works but **no products** show | Products are saved as **Draft** or none are published. In Admin → Products, filter by "Drafts only" and publish them. |
-| Login says **"Incorrect email or password"** | Check for typing mistakes. Make sure the user exists in Supabase → Authentication → Users and was created with **Auto Confirm User** (step 6). |
-| Login says **"not authorized to access the admin panel"** | The user exists but isn't an admin. Run `create-admin.sql` with the exact email (step 6b). |
+| Login says **"Incorrect email or password"** | Check for typing mistakes. Make sure the user exists in Supabase → Authentication → Users. Run the check query below. |
+| Login says **"email is not confirmed"** | The user was created without **Auto Confirm User**. Run the "confirm" query below, or delete the user and create it again with the box ticked. |
+| Login says **"not an admin yet"** | The password is right, but the account isn't an admin. Run `create-admin.sql` with the exact email (step 6b). |
 | Login says **"Supabase is not configured"** | The environment variables are missing. Add them in Vercel (step 10) or `.env.local` (step 8), then redeploy or restart. |
 | **"Too many sign-in attempts"** | Supabase temporarily blocks repeated wrong passwords. Wait a few minutes. |
 | Image upload fails with **"not allowed"** | File 3 (storage) wasn't run, or you aren't signed in as an admin. Run file 3 again (step 4) and sign in again. |
@@ -352,6 +353,37 @@ If two admins tap at the same time, only the first change is applied. The second
 | Domain shows **"Invalid Configuration"** in Vercel | DNS records are missing or wrong. Compare them carefully with what Vercel shows (step 13) and wait up to 48 hours. |
 | Supabase says the project is **paused** | Free Supabase projects can pause after a long period of inactivity. Open the Supabase dashboard and click **Restore project**. |
 | "Install app" option doesn't appear | It only works on the live HTTPS site, not on `localhost`. On iPhone use Safari → Share → *Add to Home Screen*. |
+
+### Admin login problems: check and fix with SQL
+
+Run these in Supabase → **SQL Editor**. Replace the email with yours.
+
+**1. Check your admin account.** You should see your email with `true` in both columns:
+```sql
+select u.email,
+       u.email_confirmed_at is not null as email_confirmed,
+       au.user_id is not null          as is_admin
+from auth.users u
+left join public.admin_users au on au.user_id = u.id;
+```
+- No row with your email: the user doesn't exist. Create it (step 6a).
+- `email_confirmed` is `false`: run query 2.
+- `is_admin` is `false`: run `create-admin.sql` (step 6b).
+
+**2. Confirm the email:**
+```sql
+update auth.users
+set email_confirmed_at = now()
+where lower(email) = lower('you@example.com') and email_confirmed_at is null;
+```
+
+**3. Forgot the password? Set a new one:**
+```sql
+update auth.users
+set encrypted_password = extensions.crypt('Your-New-Password-123', extensions.gen_salt('bf'))
+where lower(email) = lower('you@example.com');
+```
+Then sign in with the new password, and change it again from Admin → Settings if you like.
 
 ### Updating the website later
 

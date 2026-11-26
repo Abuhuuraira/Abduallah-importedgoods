@@ -34,12 +34,30 @@ export async function signInAction(
   const { data, error } = await supabase.auth.signInWithPassword(parsed.data);
 
   if (error || !data.user) {
-    const tooMany = error?.status === 429 || /rate limit/i.test(error?.message ?? "");
+    if (error) console.error("[auth] Sign-in failed:", error.code ?? error.status, error.message);
+    const code = error?.code ?? "";
+    const message = error?.message ?? "";
+
+    if (error?.status === 429 || code.startsWith("over_") || /rate limit/i.test(message)) {
+      return { ok: false, error: "Too many sign-in attempts. Please wait a few minutes and try again." };
+    }
+    if (code === "email_not_confirmed" || /not confirmed/i.test(message)) {
+      return {
+        ok: false,
+        code: "EMAIL_NOT_CONFIRMED",
+        error:
+          "This account's email is not confirmed yet. In Supabase → Authentication → Users, delete the user and create it again with “Auto Confirm User” ticked (or confirm it with the SQL in DEPLOYMENT.md, Troubleshooting).",
+      };
+    }
+    if (code === "user_banned") {
+      return { ok: false, error: "This account has been disabled in Supabase." };
+    }
+    if (code === "invalid_credentials" || error?.status === 400) {
+      return { ok: false, error: "Incorrect email or password." };
+    }
     return {
       ok: false,
-      error: tooMany
-        ? "Too many sign-in attempts. Please wait a few minutes and try again."
-        : "Incorrect email or password.",
+      error: "Could not reach the login service. Check your internet connection and the Supabase settings, then try again.",
     };
   }
 
@@ -51,10 +69,14 @@ export async function signInAction(
     .maybeSingle();
 
   if (adminError || !adminRow) {
+    if (adminError) console.error("[auth] Admin check failed:", adminError.code, adminError.message);
     await supabase.auth.signOut();
     return {
       ok: false,
-      error: "This account is not authorized to access the admin panel.",
+      code: "NOT_ADMIN",
+      error: adminError
+        ? "Signed in, but the admin check failed. Make sure all 4 SQL migration files were run in Supabase."
+        : "The password is correct, but this account is not an admin yet. Run supabase/create-admin.sql in the Supabase SQL Editor with this exact email.",
     };
   }
 
