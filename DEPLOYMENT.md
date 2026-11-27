@@ -280,7 +280,7 @@ The admin panel always shows new orders and likes in the **bell** at the top. To
 3. Redeploy (Deployments → ⋯ → **Redeploy**).
 4. On your phone, open `/admin` → **Settings** → **Phone notifications** → **Turn on notifications on this device** and allow notifications. Tap **Send test notification** to check.
    - **Android:** works in Chrome.
-   - **iPhone/iPad (iOS 16.4 or newer):** first open the website in Safari → Share → **Add to Home Screen**, open it from the new icon, sign in, then turn notifications on.
+   - **iPhone/iPad (iOS 16.4 or newer):** in Safari open **`/admin`** (an admin page, not the shop), tap Share → **Add to Home Screen**. The icon is called **AIG Admin** and opens the admin panel. Open it, sign in (the Home Screen app has its own login), go to **Settings**, then turn notifications on. Customers who add the shop to their Home Screen get the normal shop icon instead.
 5. Repeat step 4 on every phone or computer that should get alerts. Each device can choose **New orders** and/or **New likes**.
 
 > Keep the private key secret. If you ever change it, turn notifications off and on again on each device.

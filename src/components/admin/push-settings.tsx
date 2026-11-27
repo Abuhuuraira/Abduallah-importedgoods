@@ -187,9 +187,9 @@ export function PushSettings({ vapidPublicKey, devices }: Props) {
               <Smartphone className="size-4" aria-hidden="true" /> On iPhone or iPad, add the website to your Home Screen first:
             </p>
             <ol className="mt-2 list-decimal space-y-1 pl-5 text-muted-foreground">
-              <li>Open this page in <strong>Safari</strong> and tap the <strong>Share</strong> button.</li>
-              <li>Choose <strong>Add to Home Screen</strong>.</li>
-              <li>Open the website from the new Home Screen icon, sign in, and come back to this page.</li>
+              <li>Open this admin page in <strong>Safari</strong> and tap the <strong>Share</strong> button.</li>
+              <li>Choose <strong>Add to Home Screen</strong>. The new icon is called <strong>AIG Admin</strong>.</li>
+              <li>Open <strong>AIG Admin</strong> from your Home Screen, sign in, then go to Settings and turn notifications on.</li>
             </ol>
           </div>
         ) : support === "unsupported" ? (
