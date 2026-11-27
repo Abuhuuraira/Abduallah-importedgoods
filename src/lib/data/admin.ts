@@ -8,6 +8,14 @@ import {
   type VisitorStats,
 } from "@/lib/analytics";
 import { requireAdmin } from "@/lib/auth";
+import {
+  isOrderStatus,
+  parseOrder,
+  parseOrderCounts,
+  type Order,
+  type OrderCounts,
+  type OrderStatus,
+} from "@/lib/orders";
 import { ADMIN_PAGE_SIZE } from "@/lib/constants";
 import { searchRowToAdminProduct, settingsRowToSettings, toNumberOrNull } from "@/lib/data/mappers";
 import type { AdminProduct, CategoryWithCount, DashboardStats, SiteSettings } from "@/types";
@@ -160,4 +168,137 @@ export async function getVisitorStats(days: number): Promise<AnalyticsResult<Vis
   if (isAnalyticsNotInstalled(error)) return { installed: false };
   if (error) throw new Error(`Could not load visitor statistics: ${error.message}`);
   return { installed: true, data: parseVisitorStats(data) };
+}
+
+// ---------------------------------------------------------------------------
+// Orders, likes and notification devices (SQL file 6)
+// ---------------------------------------------------------------------------
+
+export type OrderFilters = { status: OrderStatus | "all"; q: string; page: number };
+
+export function parseOrderFilters(params: RawSearchParams): OrderFilters {
+  const status = first(params.status);
+  const page = Number.parseInt(first(params.page), 10);
+  return {
+    status: isOrderStatus(status) ? status : "all",
+    q: first(params.q).trim().slice(0, 100),
+    page: Number.isFinite(page) && page > 0 ? Math.min(page, 10_000) : 1,
+  };
+}
+
+export async function listOrders(
+  filters: OrderFilters,
+  pageSize = ADMIN_PAGE_SIZE,
+): Promise<AnalyticsResult<{ items: Order[]; total: number; pageCount: number }>> {
+  const { supabase } = await requireAdmin();
+  const { data, error } = await supabase.rpc("admin_list_orders", {
+    p_status: filters.status,
+    p_query: filters.q || null,
+    p_limit: pageSize,
+    p_offset: (filters.page - 1) * pageSize,
+  });
+  if (isAnalyticsNotInstalled(error)) return { installed: false };
+  if (error) throw new Error(`Could not load orders: ${error.message}`);
+  const rows = data ?? [];
+  const total = rows.length > 0 ? Number(rows[0].total_count) : 0;
+  return {
+    installed: true,
+    data: { items: rows.map(parseOrder), total, pageCount: Math.max(1, Math.ceil(total / pageSize)) },
+  };
+}
+
+export async function getOrderCounts(): Promise<AnalyticsResult<OrderCounts>> {
+  const { supabase } = await requireAdmin();
+  const { data, error } = await supabase.rpc("admin_order_counts");
+  if (isAnalyticsNotInstalled(error)) return { installed: false };
+  if (error) throw new Error(`Could not load order counts: ${error.message}`);
+  return { installed: true, data: parseOrderCounts(data) };
+}
+
+export type OrderDetail = {
+  order: Order;
+  product: { id: string; status: "available" | "booked"; isPublished: boolean; slug: string } | null;
+};
+
+export async function getOrder(id: string): Promise<OrderDetail | null> {
+  if (!/^[0-9a-f-]{36}$/i.test(id)) return null;
+  const { supabase } = await requireAdmin();
+  const { data, error } = await supabase.rpc("admin_get_order", { p_id: id });
+  if (isAnalyticsNotInstalled(error)) return null;
+  if (error) throw new Error(`Could not load the order: ${error.message}`);
+  if (!data || typeof data !== "object") return null;
+  const d = data as { order?: unknown; product?: Record<string, unknown> | null };
+  const p = d.product;
+  return {
+    order: parseOrder(d.order),
+    product:
+      p && typeof p.id === "string"
+        ? {
+            id: p.id,
+            status: p.status === "booked" ? "booked" : "available",
+            isPublished: p.is_published === true,
+            slug: String(p.slug ?? ""),
+          }
+        : null,
+  };
+}
+
+export type LikeStats = {
+  total: number;
+  today: number;
+  top: { id: string; name: string; productCode: string; imageUrl: string; status: string; likes: number }[];
+};
+
+export async function getLikeStats(): Promise<AnalyticsResult<LikeStats>> {
+  const { supabase } = await requireAdmin();
+  const { data, error } = await supabase.rpc("admin_like_stats");
+  if (isAnalyticsNotInstalled(error)) return { installed: false };
+  if (error) throw new Error(`Could not load likes: ${error.message}`);
+  const d = (data ?? {}) as { total?: unknown; today?: unknown; top?: unknown };
+  return {
+    installed: true,
+    data: {
+      total: Number(d.total) || 0,
+      today: Number(d.today) || 0,
+      top: (Array.isArray(d.top) ? d.top : []).map((t: Record<string, unknown>) => ({
+        id: String(t.id ?? ""),
+        name: String(t.name ?? ""),
+        productCode: String(t.product_code ?? ""),
+        imageUrl: String(t.image_url ?? ""),
+        status: String(t.status ?? ""),
+        likes: Number(t.likes) || 0,
+      })),
+    },
+  };
+}
+
+/** product id → number of likes (missing = 0). Empty when SQL file 6 is not installed. */
+export async function getProductLikeCounts(productIds: string[]): Promise<Record<string, number>> {
+  if (productIds.length === 0) return {};
+  const { supabase } = await requireAdmin();
+  const { data, error } = await supabase.rpc("admin_product_like_counts", { p_product_ids: productIds });
+  if (error) {
+    if (!isAnalyticsNotInstalled(error)) console.error("[admin] like counts failed:", error.message);
+    return {};
+  }
+  return Object.fromEntries((data ?? []).map((r) => [r.product_id, Number(r.likes) || 0]));
+}
+
+export type PushDevice = { endpoint: string; label: string; notifyOrders: boolean; notifyLikes: boolean; createdAt: string };
+
+export async function listPushDevices(): Promise<AnalyticsResult<PushDevice[]>> {
+  const { supabase } = await requireAdmin();
+  const { data, error } = await supabase.rpc("admin_list_push_devices");
+  if (isAnalyticsNotInstalled(error)) return { installed: false };
+  if (error) throw new Error(`Could not load notification devices: ${error.message}`);
+  return {
+    installed: true,
+    data: (data ?? []).map((d) => ({
+      endpoint: d.endpoint,
+      label: d.device_label,
+      notifyOrders: d.notify_orders,
+      notifyLikes: d.notify_likes,
+      createdAt: d.created_at,
+    })),
+  };
 }

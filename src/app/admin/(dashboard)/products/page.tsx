@@ -8,7 +8,7 @@ import { Pagination } from "@/components/admin/pagination";
 import { EmptyState } from "@/components/shared/empty-state";
 import { Button } from "@/components/ui/button";
 import { requireAdmin } from "@/lib/auth";
-import { getAdminCategories, getAdminSettings, listAdminProducts, parseAdminFilters } from "@/lib/data/admin";
+import { getAdminCategories, getAdminSettings, getProductLikeCounts, listAdminProducts, parseAdminFilters } from "@/lib/data/admin";
 
 export const metadata: Metadata = { title: "Products" };
 
@@ -20,6 +20,7 @@ export default async function AdminProductsPage({ searchParams }: PageProps<"/ad
     getAdminCategories(),
     getAdminSettings(),
   ]);
+  const likes = await getProductLikeCounts(result.items.map((p) => p.id));
 
   const hrefFor = (page: number) => {
     const params = new URLSearchParams();
@@ -67,7 +68,7 @@ export default async function AdminProductsPage({ searchParams }: PageProps<"/ad
           </EmptyState>
         )
       ) : (
-        <AdminProductList products={result.items} currency={settings.currency} />
+        <AdminProductList products={result.items} currency={settings.currency} likes={likes} />
       )}
 
       <Pagination page={result.page} pageCount={result.pageCount} hrefFor={hrefFor} />

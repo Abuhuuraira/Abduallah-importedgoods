@@ -1,12 +1,32 @@
 import Image from "next/image";
 import Link from "next/link";
+import { Heart } from "lucide-react";
 import { NewArrivalBadge, PublicationBadge, StatusBadge } from "@/components/products/badges";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { formatDate, formatPrice } from "@/lib/format";
 import type { AdminProduct } from "@/types";
 import { ProductRowActions } from "./product-row-actions";
 
-export function AdminProductList({ products, currency }: { products: AdminProduct[]; currency: string }) {
+function Likes({ count }: { count: number }) {
+  return (
+    <span className="inline-flex items-center gap-1 tabular-nums" title={`${count} ${count === 1 ? "like" : "likes"}`} data-testid="product-likes">
+      <Heart className={count > 0 ? "size-3.5 fill-rose-500 text-rose-500" : "size-3.5 text-muted-foreground"} aria-hidden="true" />
+      {count}
+      <span className="sr-only">{count === 1 ? " like" : " likes"}</span>
+    </span>
+  );
+}
+
+export function AdminProductList({
+  products,
+  currency,
+  likes,
+}: {
+  products: AdminProduct[];
+  currency: string;
+  /** product id → like count; the column is hidden when not provided. */
+  likes?: Record<string, number>;
+}) {
   return (
     <>
       {/* Phones & tablets: cards */}
@@ -37,6 +57,12 @@ export function AdminProductList({ products, currency }: { products: AdminProduc
             <div className="mt-3 flex items-center justify-between gap-2 border-t border-border pt-3">
               <p className="min-w-0 truncate text-xs text-muted-foreground">
                 {p.category_name ?? "Uncategorized"} · {formatDate(p.created_at)}
+                {likes && (
+                  <>
+                    {" · "}
+                    <Likes count={likes[p.id] ?? 0} />
+                  </>
+                )}
               </p>
               <ProductRowActions product={p} />
             </div>
@@ -53,6 +79,7 @@ export function AdminProductList({ products, currency }: { products: AdminProduc
               <TableHead>Product</TableHead>
               <TableHead>Price</TableHead>
               <TableHead>Category</TableHead>
+              {likes && <TableHead>Likes</TableHead>}
               <TableHead>Availability</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Created</TableHead>
@@ -78,6 +105,11 @@ export function AdminProductList({ products, currency }: { products: AdminProduc
                 </TableCell>
                 <TableCell className="font-semibold whitespace-nowrap">{formatPrice(p.price, currency)}</TableCell>
                 <TableCell className="text-muted-foreground">{p.category_name ?? "—"}</TableCell>
+                {likes && (
+                  <TableCell>
+                    <Likes count={likes[p.id] ?? 0} />
+                  </TableCell>
+                )}
                 <TableCell>
                   <StatusBadge status={p.status} />
                 </TableCell>

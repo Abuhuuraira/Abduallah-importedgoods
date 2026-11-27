@@ -3,13 +3,14 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { Activity, ExternalLink, LayoutDashboard, Layers, Menu, Package, PlusCircle, Settings } from "lucide-react";
+import { Activity, ExternalLink, LayoutDashboard, Layers, Menu, Package, PlusCircle, Settings, ShoppingBag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 
 export const ADMIN_LINKS = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
+  { href: "/admin/orders", label: "Orders", icon: ShoppingBag, exact: false },
   { href: "/admin/visitors", label: "Visitors", icon: Activity, exact: false },
   { href: "/admin/products", label: "Products", icon: Package, exact: false },
   { href: "/admin/products/new", label: "Add Product", icon: PlusCircle, exact: true },

@@ -164,3 +164,46 @@ export const settingsSchema = z.object({
 });
 
 export type SettingsInput = z.infer<typeof settingsSchema>;
+
+// ---------------------------------------------------------------------------
+// Cash-on-delivery orders (public form)
+// ---------------------------------------------------------------------------
+
+const trimmed = (v: unknown) => (typeof v === "string" ? v.trim().replace(/[ \t]+/g, " ") : v ?? "");
+
+export const orderSchema = z.object({
+  productId: uuid,
+  quantity: z.preprocess(
+    (v) => (v === "" || v === null || v === undefined ? 1 : Number(v)),
+    z
+      .number({ error: "Enter a quantity" })
+      .int("Enter a whole number")
+      .min(1, "Quantity must be at least 1")
+      .max(9999, "Quantity must be at most 9999"),
+  ),
+  name: z.preprocess(
+    trimmed,
+    z.string().min(2, "Please enter your name").max(80, "Name must be at most 80 characters"),
+  ),
+  whatsapp: z.preprocess(
+    (v) => (typeof v === "string" ? v : ""),
+    z.string().transform((value, ctx) => {
+      const normalized = normalizeWhatsAppNumber(value);
+      if (!normalized || normalized.length < 10) {
+        ctx.addIssue({ code: "custom", message: "Enter a valid WhatsApp number, e.g. 0300 1234567" });
+        return z.NEVER;
+      }
+      return normalized;
+    }),
+  ),
+  address: z.preprocess(
+    trimmed,
+    z
+      .string()
+      .min(5, "Please enter your full delivery address (house, street, area, city)")
+      .max(500, "Address must be at most 500 characters"),
+  ),
+  note: optionalText(500, "Note"),
+});
+
+export type OrderInput = z.infer<typeof orderSchema>;

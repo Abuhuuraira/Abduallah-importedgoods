@@ -5,6 +5,8 @@ import { Plus, ShieldCheck } from "lucide-react";
 import { IgnoreThisDeviceForStats } from "@/components/analytics/visitor-tracker";
 import { AdminMobileMenu, AdminNav, AdminNavList } from "@/components/admin/admin-nav";
 import { AdminUser } from "@/components/admin/admin-user";
+import { NotificationBell } from "@/components/admin/notification-bell";
+import { ServiceWorkerRegister } from "@/components/pwa/service-worker-register";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -21,16 +23,18 @@ export default function AdminLayout({ children }: LayoutProps<"/admin">) {
   return (
     <div className="min-h-dvh bg-surface lg:flex">
       <IgnoreThisDeviceForStats />
+      <ServiceWorkerRegister />
       {/* Desktop sidebar */}
       <aside className="sticky top-0 hidden h-dvh w-64 shrink-0 flex-col border-r border-border bg-background lg:flex">
         <div className="flex h-16 items-center gap-2.5 border-b border-border px-5">
           <span className="flex size-9 items-center justify-center rounded-xl bg-navy text-gold">
             <ShieldCheck className="size-5" aria-hidden="true" />
           </span>
-          <span className="leading-tight">
+          <span className="flex-1 leading-tight">
             <span className="block text-sm font-bold">Admin Panel</span>
             <span className="block text-xs text-muted-foreground">Catalog management</span>
           </span>
+          <NotificationBell className="-mr-2" />
         </div>
         <div className="flex-1 overflow-y-auto p-3">
           <Suspense fallback={<AdminNavList pathname="" />}>
@@ -57,6 +61,7 @@ export default function AdminLayout({ children }: LayoutProps<"/admin">) {
             />
           </Suspense>
           <span className="flex-1 truncate text-sm font-bold">Admin Panel</span>
+          <NotificationBell />
           <Button asChild size="sm" className="mr-1">
             <Link href="/admin/products/new">
               <Plus /> Add

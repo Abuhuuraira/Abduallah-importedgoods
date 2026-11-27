@@ -5,6 +5,8 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { CalendarDays, ChevronRight, Hash, Layers, PackageCheck } from "lucide-react";
 import { NewArrivalBadge, StatusBadge } from "@/components/products/badges";
+import { LikeButton } from "@/components/products/like-button";
+import { OrderDialog } from "@/components/products/order-dialog";
 import { ProductGrid } from "@/components/products/product-grid";
 import { ShareActions } from "@/components/products/share-actions";
 import { MobileBookingBar, WhatsAppActions } from "@/components/products/whatsapp-actions";
@@ -167,10 +169,20 @@ async function ProductDetailView({ params }: Pick<PageProps<"/products/[slug]">,
               <p className="inline-flex items-center gap-1.5 rounded-lg bg-muted px-2.5 py-1 font-mono text-sm font-semibold text-foreground">
                 <Hash className="size-3.5" aria-hidden="true" /> {product.product_code}
               </p>
-              <p className={cn("text-3xl font-extrabold", product.price === null && "text-xl text-muted-foreground")}>
-                {formatPrice(product.price, settings.currency)}
-              </p>
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <p className={cn("text-3xl font-extrabold", product.price === null && "text-xl text-muted-foreground")}>
+                  {formatPrice(product.price, settings.currency)}
+                </p>
+                <LikeButton productId={product.id} />
+              </div>
             </div>
+
+            {!booked && (
+              <div className="space-y-2">
+                <OrderDialog product={product} currency={settings.currency} shopWhatsapp={settings.whatsappNumber} />
+                <p className="text-center text-xs text-muted-foreground">Pay cash when your order is delivered.</p>
+              </div>
+            )}
 
             <WhatsAppActions product={product} settings={settings} productUrl={productUrl} />
 

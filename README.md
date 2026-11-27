@@ -15,6 +15,8 @@ A mobile-first wholesale product catalog with WhatsApp booking and a secure admi
 - Homepage with hero, category chips, New Arrivals, Latest Products, and All Products with **Load more**
 - Product page with large image, product ID, price (PKR), description, category, availability, date added, related products
 - **Book on WhatsApp** and **Inquire on WhatsApp** buttons (official `https://wa.me/<number>?text=…` links)
+- **Order now · Cash on Delivery**: a short form (name, WhatsApp, address, quantity, note) that creates an order with a number like `ORD-0007`
+- **♡ Like** button with a live count (one like per browser)
 - Booked products stay visible with a **BOOKED** badge, a disabled booking button, and an "Ask about future stock" option
 - Search by name, product ID, description or category. Filters: category, available only, new arrivals. Sorting: newest, price low→high, price high→low
 - Share and copy-link buttons, a floating WhatsApp button, and a sticky booking bar on phones
@@ -30,6 +32,9 @@ A mobile-first wholesale product catalog with WhatsApp booking and a secure admi
 - Product list with search, filters, pagination, and one-tap **Mark Booked / Mark Available**, Publish / Unpublish, Edit and Delete (with confirmation)
 - Category management with product counts. A category that still has products can only be deleted after choosing where to move them.
 - Settings: business name, logo, WhatsApp number, currency, welcome text and contact details, used across the whole site
+- **Orders**: every cash-on-delivery order with customer details, status steps (New → Confirmed → Shipped → Delivered / Cancelled), a ready-made WhatsApp message to the customer, private notes, and one tap to mark the product Booked
+- **Notifications**: a bell with unread count and pop-ups for new orders and likes, plus optional **phone push notifications** (Web Push) even when the site is closed
+- **Likes**: like count per product, total likes and most liked products on the dashboard
 - **Visitors**: live "active right now" count (auto-refreshing) with the pages being viewed, plus today / 7 / 30 / 90-day visitors, page views, new visitors, time on site, a daily chart, most viewed products, devices and traffic sources. Visits are counted anonymously (no cookies, IP addresses or personal data, 90-day history), and bots and the admin's own devices are excluded.
 
 ## Tech stack
@@ -43,7 +48,7 @@ src/
   app/
     (public)/              Customer website (home, /products, /products/[slug], /offline)
     admin/login/           Admin sign-in page
-    admin/(dashboard)/     Protected admin pages (dashboard, visitors, products, categories, settings)
+    admin/(dashboard)/     Protected admin pages (dashboard, orders, visitors, products, categories, settings)
     api/products/          Read-only JSON endpoint used by "Load more"
     manifest.ts, robots.ts, sitemap.ts, not-found.tsx, global-error.tsx
   components/
@@ -61,7 +66,8 @@ src/
   proxy.ts                 Refreshes the session and guards /admin (formerly "middleware")
   types/                   App and database types
 supabase/
-  migrations/              SQL: schema, RLS security, storage bucket, starter categories, visitor statistics
+  migrations/              SQL: schema, RLS security, storage bucket, starter categories, visitor statistics,
+                           likes / orders / notifications
   create-admin.sql         Authorize your first admin
 ```
 
@@ -81,7 +87,7 @@ npm run dev                    # http://localhost:3000  (admin: http://localhost
 | `npm run build` | Production build (also type-checks) |
 | `npm start` | Run the production build locally |
 | `npm run lint` | ESLint |
-| `npm test` | Unit tests (WhatsApp messages, validation, slugs, formatting, URL filters, visitor statistics helpers) |
+| `npm test` | Unit tests (WhatsApp messages, validation, slugs, formatting, URL filters, visitor statistics, orders) |
 
 ## How security works
 
@@ -92,6 +98,7 @@ npm run dev                    # http://localhost:3000  (admin: http://localhost
 5. **Validation.** All input is validated with Zod on the server. Uploads are limited to JPG, PNG and WebP up to 5 MB, by both the app and the storage bucket. Image paths are checked against a strict pattern.
 6. **Concurrency.** Booking changes only apply if the product is still in the expected state (`… WHERE status = 'available'`). Product edits use a version number, so two admins can't silently overwrite each other.
 7. **Visitor statistics.** The website can only *record* visits, through two database functions that validate every value, ignore `/admin` and `/api` paths, and cap volume (200 page views per visit, 300 per minute overall). The tables have RLS with no policies, and only admins can read the totals (`get_visitor_live`, `get_visitor_stats` check `is_admin()`).
+8. **Orders, likes and push.** Customers can only *create* orders and likes through database functions that validate every field and rate-limit (5 orders per WhatsApp number per hour, 50 per 10 minutes overall, 120 new likes per minute). Orders, notifications and push devices are admin-only under RLS. Push messages are signed with `VAPID_PRIVATE_KEY`, a server-only variable. A secret derived from it is the only way to ask the database for admin devices, and the database stores only its SHA-256 fingerprint.
 
 ## How "instant" updates work
 

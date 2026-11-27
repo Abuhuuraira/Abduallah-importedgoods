@@ -1,5 +1,6 @@
 import { CalendarCheck, Info, Lock, MessageCircleQuestion } from "lucide-react";
 import { WhatsAppIcon } from "@/components/icons/whatsapp-icon";
+import { OrderDialog } from "@/components/products/order-dialog";
 import { formatPrice } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import {
@@ -16,6 +17,8 @@ type Props = {
   settings: SiteSettings;
   productUrl: string;
 };
+
+type BarProduct = WhatsAppProduct & { id: string; image_url: string };
 
 const baseBtn =
   "inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl px-5 text-[0.95rem] font-bold uppercase tracking-wide transition-colors focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50";
@@ -91,14 +94,14 @@ export function WhatsAppActions({ product, settings, productUrl }: Props) {
 }
 
 /** Compact sticky bar shown at the bottom of the screen on phones. */
-export function MobileBookingBar({ product, settings, productUrl }: Props) {
-  if (!isValidWhatsAppNumber(settings.whatsappNumber)) return null;
+export function MobileBookingBar({ product, settings, productUrl }: Omit<Props, "product"> & { product: BarProduct }) {
   const booked = product.status === "booked";
+  const hasWhatsApp = isValidWhatsAppNumber(settings.whatsappNumber);
+  if (booked && !hasWhatsApp) return null;
   const ctx = { businessName: settings.businessName, currency: settings.currency, productUrl };
-  const url = buildWhatsAppUrl(
-    settings.whatsappNumber,
-    booked ? buildInquiryMessage(product, ctx) : buildBookingMessage(product, ctx),
-  );
+  const url = hasWhatsApp
+    ? buildWhatsAppUrl(settings.whatsappNumber, booked ? buildInquiryMessage(product, ctx) : buildBookingMessage(product, ctx))
+    : null;
 
   return (
     <div
@@ -110,18 +113,34 @@ export function MobileBookingBar({ product, settings, productUrl }: Props) {
           <p className="truncate text-xs text-muted-foreground">{product.product_code}</p>
           <p className="truncate text-base font-bold">{formatPrice(product.price, settings.currency)}</p>
         </div>
-        <a
-          href={url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className={cn(
-            "inline-flex h-12 shrink-0 items-center justify-center gap-2 rounded-xl px-5 text-sm font-bold uppercase tracking-wide",
-            booked ? "border-2 border-whatsapp text-whatsapp" : "bg-whatsapp text-white hover:bg-whatsapp-hover",
-          )}
-        >
-          <WhatsAppIcon className="size-5" />
-          {booked ? "Ask about stock" : "Book on WhatsApp"}
-        </a>
+        {booked ? (
+          url && (
+            <a
+              href={url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex h-12 shrink-0 items-center justify-center gap-2 rounded-xl border-2 border-whatsapp px-5 text-sm font-bold uppercase tracking-wide text-whatsapp"
+            >
+              <WhatsAppIcon className="size-5" />
+              Ask about stock
+            </a>
+          )
+        ) : (
+          <>
+            {url && (
+              <a
+                href={url}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Book on WhatsApp"
+                className="inline-flex size-12 shrink-0 items-center justify-center rounded-xl bg-whatsapp text-white hover:bg-whatsapp-hover"
+              >
+                <WhatsAppIcon className="size-6" />
+              </a>
+            )}
+            <OrderDialog product={product} currency={settings.currency} shopWhatsapp={settings.whatsappNumber} variant="compact" />
+          </>
+        )}
       </div>
     </div>
   );

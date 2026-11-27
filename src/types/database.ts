@@ -257,6 +257,108 @@ export type Database = {
         Args: { p_days?: number };
         Returns: Json;
       };
+      get_like_state: {
+        Args: { p_product_id: string; p_visitor_id?: string | null };
+        Returns: Json;
+      };
+      set_product_like: {
+        Args: { p_product_id: string; p_visitor_id: string; p_liked?: boolean };
+        Returns: Json;
+      };
+      place_order: {
+        Args: {
+          p_product_id: string;
+          p_quantity: number;
+          p_customer_name: string;
+          p_customer_whatsapp: string;
+          p_customer_address: string;
+          p_customer_note?: string;
+        };
+        Returns: Json;
+      };
+      admin_list_orders: {
+        Args: { p_status?: string | null; p_query?: string | null; p_limit?: number; p_offset?: number };
+        Returns: {
+          id: string;
+          order_number: number;
+          product_id: string | null;
+          product_name: string;
+          product_code: string;
+          product_slug: string;
+          product_image_url: string;
+          unit_price: number | null;
+          quantity: number;
+          customer_name: string;
+          customer_whatsapp: string;
+          customer_address: string;
+          customer_note: string;
+          status: string;
+          admin_note: string;
+          created_at: string;
+          updated_at: string;
+          total_count: number;
+        }[];
+      };
+      admin_order_counts: {
+        Args: never;
+        Returns: Json;
+      };
+      admin_get_order: {
+        Args: { p_id: string };
+        Returns: Json;
+      };
+      admin_set_order_status: {
+        Args: { p_id: string; p_from: string; p_to: string };
+        Returns: string;
+      };
+      admin_set_order_note: {
+        Args: { p_id: string; p_note: string };
+        Returns: undefined;
+      };
+      admin_delete_order: {
+        Args: { p_id: string };
+        Returns: undefined;
+      };
+      admin_like_stats: {
+        Args: never;
+        Returns: Json;
+      };
+      admin_product_like_counts: {
+        Args: { p_product_ids: string[] };
+        Returns: { product_id: string; likes: number }[];
+      };
+      admin_list_notifications: {
+        Args: { p_limit?: number };
+        Returns: Json;
+      };
+      admin_mark_notifications_read: {
+        Args: { p_ids?: number[] | null };
+        Returns: number;
+      };
+      admin_save_push_subscription: {
+        Args: { p_endpoint: string; p_p256dh: string; p_auth: string; p_device_label: string; p_secret_hash: string };
+        Returns: undefined;
+      };
+      admin_list_push_devices: {
+        Args: never;
+        Returns: { endpoint: string; device_label: string; notify_orders: boolean; notify_likes: boolean; created_at: string }[];
+      };
+      admin_update_push_device: {
+        Args: { p_endpoint: string; p_notify_orders: boolean | null; p_notify_likes: boolean | null };
+        Returns: undefined;
+      };
+      admin_delete_push_device: {
+        Args: { p_endpoint: string };
+        Returns: undefined;
+      };
+      get_push_targets: {
+        Args: { p_secret: string; p_kind: string; p_endpoint?: string | null };
+        Returns: { endpoint: string; p256dh: string; auth: string }[];
+      };
+      remove_push_target: {
+        Args: { p_secret: string; p_endpoint: string };
+        Returns: undefined;
+      };
     };
     Enums: {
       [_ in never]: never;

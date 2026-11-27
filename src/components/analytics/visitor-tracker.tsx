@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation";
 import { useEffect } from "react";
 import { ANALYTICS_IGNORE_KEY, detectDevice, isLikelyBot, normalizeReferrer } from "@/lib/analytics";
 import { isSupabaseConfigured, supabasePublishableKey, supabaseUrl } from "@/lib/env";
+import { getVisitorId, randomId, readStorage as read, UUID_RE, writeStorage as write } from "@/lib/visitor-id";
 
 /*
  * Anonymous visitor counting for Admin → Visitors.
@@ -17,43 +18,16 @@ import { isSupabaseConfigured, supabasePublishableKey, supabaseUrl } from "@/lib
  * • Tracking failures are silent and never affect the website.
  */
 
-const VISITOR_KEY = "aig_visitor";
 const SESSION_KEY = "aig_session";
 const SESSION_TIMEOUT_MS = 30 * 60 * 1000;
 const HEARTBEAT_MS = 30 * 1000;
 const IDLE_AFTER_MS = 5 * 60 * 1000;
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 const OFF_KEY = "aig_tracking_off"; // sessionStorage: tracking SQL not installed yet
 
 let disabled = false; // set when the tracking functions are not installed in Supabase
 let lastTracked: { path: string; at: number } | null = null;
-const memory: { visitorId?: string; session?: { id: string; last: number } } = {};
-
-function read(key: string): string | null {
-  try {
-    return window.localStorage.getItem(key);
-  } catch {
-    return null;
-  }
-}
-
-function write(key: string, value: string) {
-  try {
-    window.localStorage.setItem(key, value);
-  } catch {
-    // Private mode / storage blocked: fall back to in-memory IDs.
-  }
-}
-
-function randomId(): string {
-  if (typeof crypto.randomUUID === "function") return crypto.randomUUID();
-  const b = crypto.getRandomValues(new Uint8Array(16));
-  b[6] = (b[6] & 0x0f) | 0x40;
-  b[8] = (b[8] & 0x3f) | 0x80;
-  const h = Array.from(b, (x) => x.toString(16).padStart(2, "0")).join("");
-  return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`;
-}
+const memory: { session?: { id: string; last: number } } = {};
 
 function parseSession(raw: string | null): { id: string; last: number } | null {
   if (!raw) return null;
@@ -68,14 +42,7 @@ function parseSession(raw: string | null): { id: string; last: number } | null {
 /** Current visitor + visit IDs; starts a new visit after 30 idle minutes. */
 function currentIds() {
   const now = Date.now();
-  let newVisitor = false;
-  let visitorId = read(VISITOR_KEY) ?? memory.visitorId ?? null;
-  if (!visitorId || !UUID_RE.test(visitorId)) {
-    visitorId = randomId();
-    newVisitor = true;
-    write(VISITOR_KEY, visitorId);
-  }
-  memory.visitorId = visitorId;
+  const { id: visitorId, isNew: newVisitor } = getVisitorId();
 
   let session = parseSession(read(SESSION_KEY)) ?? memory.session ?? null;
   let newSession = false;

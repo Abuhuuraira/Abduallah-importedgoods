@@ -30,7 +30,7 @@ You will use three free online services:
 12. [First login and setup](#12-first-login-and-setup)
 13. [Connect your own domain](#13-connect-your-own-domain)
 14. [Test everything (launch checklist)](#14-test-everything-launch-checklist)
-15. [Daily use: how booking works](#15-daily-use-how-booking-works)
+15. [Daily use: bookings and orders](#15-daily-use-bookings-and-orders)
 16. [Troubleshooting](#16-troubleshooting)
 
 ---
@@ -59,7 +59,7 @@ Create free accounts on **Supabase**, **GitHub** and **Vercel**. Tip: on Supabas
 
 ## 3. Set up the database (run the SQL files)
 
-The folder `supabase/migrations/` contains **five** files. Each one is a set of instructions that creates part of the database. Run them **in this exact order**:
+The folder `supabase/migrations/` contains **six** files. Each one is a set of instructions that creates part of the database. Run them **in this exact order**:
 
 | Order | File | What it creates |
 | --- | --- | --- |
@@ -68,6 +68,7 @@ The folder `supabase/migrations/` contains **five** files. Each one is a set of 
 | 3 | `20261125000200_storage.sql` | The image storage bucket and its security rules |
 | 4 | `20261125000300_default_categories.sql` | Starter categories (Electronics, Kitchen Items, …) |
 | 5 | `20261126000000_visitor_analytics.sql` | Visitor statistics for **Admin → Visitors** (anonymous visit counting) |
+| 6 | `20261127000000_likes_orders_notifications.sql` | Product likes, cash-on-delivery orders, admin notifications |
 
 For **each file**:
 
@@ -80,7 +81,7 @@ For **each file**:
 >
 > Running a file a second time is safe. It won't duplicate anything.
 
-**Using the Supabase CLI instead (advanced, optional):** if you're comfortable with a terminal, run `npx supabase login`, then `npx supabase link --project-ref <your-project-ref>`, then `npx supabase db push` from the project folder. This runs all five files for you.
+**Using the Supabase CLI instead (advanced, optional):** if you're comfortable with a terminal, run `npx supabase login`, then `npx supabase link --project-ref <your-project-ref>`, then `npx supabase db push` from the project folder. This runs all six files for you.
 
 ---
 
@@ -259,8 +260,30 @@ This address is used in the product links inside WhatsApp messages, the sitemap,
 | `NEXT_PUBLIC_SUPABASE_URL` | Yes | `https://abcdefghijklmnop.supabase.co` |
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Yes | `sb_publishable_...` |
 | `NEXT_PUBLIC_SITE_URL` | Strongly recommended | `https://www.yourdomain.com` |
+| `VAPID_PRIVATE_KEY` | For phone notifications | a 43-character key (see *Phone notifications* below) |
 
 > Do **not** add the Supabase secret / service_role key anywhere. This app doesn't use it.
+
+### Phone notifications (new orders and likes)
+
+The admin panel always shows new orders and likes in the **bell** at the top. To also get an alert on your **phone** when the website is closed, the server needs one secret key:
+
+1. Create the key once. On your computer, open a terminal in the project folder and run:
+   ```
+   npx web-push generate-vapid-keys
+   ```
+   Copy the **Private Key** (a line of about 43 letters and numbers). You can ignore the Public Key; the website works it out from the private one.
+2. Vercel → your project → **Settings** → **Environment Variables** → add:
+   - Name: `VAPID_PRIVATE_KEY` (do **not** add `NEXT_PUBLIC_` in front: this one is secret)
+   - Value: the private key
+   - Environments: **Production** (and Preview if you use it)
+3. Redeploy (Deployments → ⋯ → **Redeploy**).
+4. On your phone, open `/admin` → **Settings** → **Phone notifications** → **Turn on notifications on this device** and allow notifications. Tap **Send test notification** to check.
+   - **Android:** works in Chrome.
+   - **iPhone/iPad (iOS 16.4 or newer):** first open the website in Safari → Share → **Add to Home Screen**, open it from the new icon, sign in, then turn notifications on.
+5. Repeat step 4 on every phone or computer that should get alerts. Each device can choose **New orders** and/or **New likes**.
+
+> Keep the private key secret. If you ever change it, turn notifications off and on again on each device.
 
 ---
 
@@ -319,7 +342,7 @@ Optional: add your site to **Google Search Console** (https://search.google.com/
 
 ---
 
-## 15. Daily use: how booking works
+## 15. Daily use: bookings and orders
 
 1. A customer taps **Book on WhatsApp**. You receive a message with the product name, **Product ID** and link.
 2. Open **`/admin` → Products** on your phone and search the product ID (for example `AIG-014`).
@@ -327,6 +350,23 @@ Optional: add your site to **Google Search Console** (https://search.google.com/
 4. If the booking is cancelled, tap **Mark Available**.
 
 If two admins tap at the same time, only the first change is applied. The second admin sees a message that the product was already updated.
+
+### Cash-on-delivery orders
+
+Every product that is **Available** has an **Order now · Cash on Delivery** button. The customer enters their name, WhatsApp number, delivery address and quantity, presses **Place order**, and gets an order number (for example `ORD-0007`).
+
+1. You get a notification (bell in the admin panel, and on your phone if it's turned on).
+2. Open **`/admin` → Orders** and tap the order. You see the customer's name, WhatsApp number, address, note, the product and the total to collect.
+3. Tap **Message customer on WhatsApp**. A ready-made message opens with the order details. Confirm with the customer.
+4. Tap **Confirm order**, later **Mark as shipped**, then **Mark as delivered**. The WhatsApp message changes to match each step.
+5. If you only have one piece, tap **Mark … as Booked on the website** so nobody else can order it.
+6. **Cancel order** keeps it in the list as Cancelled (you can reopen it). Cancelled or delivered orders can be deleted.
+
+Use **Private note** for courier names, tracking numbers or delivery times. Only admins see it. To stop spam, the website accepts at most 5 orders per WhatsApp number per hour.
+
+### Likes
+
+Customers can tap **♡ Like** on any product (one like per phone or computer, tap again to unlike). You see the like count of each product in **Products**, and **Total likes** and **Most liked** on the dashboard. You're notified once per new like.
 
 ### Seeing who visits your website
 
@@ -346,9 +386,12 @@ Visits are counted anonymously. No names, phone numbers or IP addresses are stor
 
 | Problem | Likely cause and fix |
 | --- | --- |
-| Website says **"We couldn't load products right now"** | The database isn't reachable or the SQL files weren't run. Check step 3 (all 5 files, in order) and that the Vercel environment variables match step 7. Redeploy after fixing variables. |
+| Website says **"We couldn't load products right now"** | The database isn't reachable or the SQL files weren't run. Check step 3 (all 6 files, in order) and that the Vercel environment variables match step 7. Redeploy after fixing variables. |
 | **Admin → Visitors** says *"One more step to turn on visitor statistics"* | File 5 (`20261126000000_visitor_analytics.sql`) hasn't been run yet. Run it in the SQL Editor (step 3), then reload the page. |
 | Visitors stays at **0** when you open the website yourself | That's on purpose: devices where you've opened the admin panel are not counted. Test with a phone that has never opened `/admin`. |
+| **Orders** says *"One more step to turn on orders and likes"*, or customers see *"Online ordering is being set up"* | File 6 (`20261127000000_likes_orders_notifications.sql`) hasn't been run yet. Run it in the SQL Editor (step 3). |
+| **Phone notifications** says it needs a setup on Vercel | `VAPID_PRIVATE_KEY` is missing. Add it (step 11, *Phone notifications*) and redeploy. |
+| Phone notifications don't arrive | Tap **Send test notification** in Settings. If it fails, turn notifications off and on again on that device. Make sure the phone allows notifications for the browser (Android) or the Home Screen app (iPhone). |
 | Website works but **no products** show | Products are saved as **Draft** or none are published. In Admin → Products, filter by "Drafts only" and publish them. |
 | Login says **"Incorrect email or password"** | Check for typing mistakes. Make sure the user exists in Supabase → Authentication → Users. Run the check query below. |
 | Login says **"email is not confirmed"** | The user was created without **Auto Confirm User**. Run the "confirm" query below, or delete the user and create it again with the box ticked. |

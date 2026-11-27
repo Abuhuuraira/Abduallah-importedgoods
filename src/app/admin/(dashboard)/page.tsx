@@ -1,15 +1,18 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import {
+  ArrowRight,
   CheckCircle2,
   ExternalLink,
   FileEdit,
+  Heart,
   Globe,
   Layers,
   Lock,
   Package,
   PlusCircle,
   Settings,
+  ShoppingBag,
   TriangleAlert,
   Users,
 } from "lucide-react";
@@ -20,23 +23,37 @@ import { LiveVisitorsSummary } from "@/components/admin/visitors/live-visitors";
 import { EmptyState } from "@/components/shared/empty-state";
 import { Button } from "@/components/ui/button";
 import { requireAdmin } from "@/lib/auth";
-import { getAdminSettings, getDashboardStats, getVisitorLive, listAdminProducts } from "@/lib/data/admin";
+import {
+  getAdminSettings,
+  getDashboardStats,
+  getLikeStats,
+  getOrderCounts,
+  getProductLikeCounts,
+  getVisitorLive,
+  listAdminProducts,
+} from "@/lib/data/admin";
+import { formatCount } from "@/lib/format";
 import { isValidWhatsAppNumber } from "@/lib/whatsapp";
 
 export const metadata: Metadata = { title: "Dashboard" };
 
 export default async function AdminDashboardPage() {
   const { user } = await requireAdmin();
-  const [stats, recent, settings, visitors] = await Promise.all([
+  // Extras (visitors, orders, likes) must never break the dashboard.
+  const optional = <T,>(promise: Promise<T>, what: string) =>
+    promise.catch((error: unknown) => {
+      console.error(`[admin] ${what} unavailable:`, error);
+      return null;
+    });
+  const [stats, recent, settings, visitors, orderCounts, likeStats] = await Promise.all([
     getDashboardStats(),
     listAdminProducts({ q: "", category: "", status: "all", publication: "all", page: 1 }, 5),
     getAdminSettings(),
-    // Visitor numbers are a bonus: never let them break the dashboard.
-    getVisitorLive().catch((error: unknown) => {
-      console.error("[admin] Visitor statistics unavailable:", error);
-      return null;
-    }),
+    optional(getVisitorLive(), "Visitor statistics"),
+    optional(getOrderCounts(), "Orders"),
+    optional(getLikeStats(), "Likes"),
   ]);
+  const recentLikes = await getProductLikeCounts(recent.items.map((p) => p.id));
 
   return (
     <>
@@ -82,6 +99,59 @@ export default async function AdminDashboardPage() {
         </div>
       ) : null}
 
+      {orderCounts?.installed && likeStats?.installed && (
+        <section aria-label="Orders and likes" className="mb-6 grid gap-3 sm:gap-4 md:grid-cols-2">
+          <Link
+            href={orderCounts.data.new > 0 ? "/admin/orders?status=new" : "/admin/orders"}
+            className="group block rounded-2xl border border-border/70 bg-card p-4 shadow-soft transition-all hover:-translate-y-0.5 hover:shadow-lift sm:p-5"
+            data-testid="dashboard-orders"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <p className="text-sm font-medium text-muted-foreground">New orders</p>
+              <span className="flex size-10 items-center justify-center rounded-xl bg-gold-soft text-gold-foreground">
+                <ShoppingBag className="size-5" aria-hidden="true" />
+              </span>
+            </div>
+            <p className="mt-1 text-3xl font-extrabold tracking-tight" data-testid="dashboard-new-orders">
+              {formatCount(orderCounts.data.new)}
+            </p>
+            <p className="mt-1 flex items-center gap-1 text-sm text-muted-foreground">
+              {formatCount(orderCounts.data.all)} order{orderCounts.data.all === 1 ? "" : "s"} in total ·{" "}
+              {formatCount(orderCounts.data.confirmed + orderCounts.data.shipped)} in progress
+              <ArrowRight className="ml-auto size-4 text-primary transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
+            </p>
+          </Link>
+
+          <div className="rounded-2xl border border-border/70 bg-card p-4 shadow-soft sm:p-5" data-testid="dashboard-likes">
+            <div className="flex items-start justify-between gap-3">
+              <p className="text-sm font-medium text-muted-foreground">Total likes</p>
+              <span className="flex size-10 items-center justify-center rounded-xl bg-rose-50 text-rose-600">
+                <Heart className="size-5" aria-hidden="true" />
+              </span>
+            </div>
+            <p className="mt-1 text-3xl font-extrabold tracking-tight" data-testid="dashboard-total-likes">
+              {formatCount(likeStats.data.total)}
+            </p>
+            <p className="mt-1 text-sm text-muted-foreground">{formatCount(likeStats.data.today)} today</p>
+            {likeStats.data.top.length > 0 && (
+              <ol className="mt-3 space-y-1.5 border-t border-border pt-3 text-sm">
+                <li className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Most liked</li>
+                {likeStats.data.top.slice(0, 3).map((p) => (
+                  <li key={p.id} className="flex items-center justify-between gap-3">
+                    <Link href={`/admin/products/${p.id}/edit`} className="min-w-0 truncate hover:underline">
+                      {p.name} <span className="text-xs text-muted-foreground">{p.productCode}</span>
+                    </Link>
+                    <span className="flex shrink-0 items-center gap-1 font-semibold tabular-nums">
+                      <Heart className="size-3.5 fill-rose-500 text-rose-500" aria-hidden="true" /> {formatCount(p.likes)}
+                    </span>
+                  </li>
+                ))}
+              </ol>
+            )}
+          </div>
+        </section>
+      )}
+
       <section aria-label="Statistics" className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
         <StatCard label="Total Products" value={stats.total_products} icon={Package} tone="navy" href="/admin/products" />
         <StatCard label="Published" value={stats.published_products} icon={Globe} tone="green" href="/admin/products?publication=published" hint="Visible to customers" />
@@ -111,7 +181,7 @@ export default async function AdminDashboardPage() {
             </Button>
           </EmptyState>
         ) : (
-          <AdminProductList products={recent.items} currency={settings.currency} />
+          <AdminProductList products={recent.items} currency={settings.currency} likes={recentLikes} />
         )}
       </section>
 
